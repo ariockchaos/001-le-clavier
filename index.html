@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clavier Interactif</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050510;
+            --panel-bg: rgba(21, 21, 37, 0.9);
+            --text-color: #e0e0e0;
+            --neon-pink: #ff00ff;
+            --neon-blue: #00ffff;
+            --neon-green: #00ff00;
+            --neon-orange: #ff9900;
+            --neon-red: #ff3333;
+            --key-bg: #1a1a2e;
+            --font-family: 'Outfit', sans-serif;
+            --border-radius: 16px;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 1;
+        }
+        header { text-align: center; }
+        h1 {
+            font-size: clamp(1.4rem, 5vw, 2.2rem);
+            margin: 0;
+            background: linear-gradient(90deg, var(--neon-red), var(--neon-orange), var(--neon-green), var(--neon-blue), var(--neon-pink), var(--neon-red));
+            background-size: 400% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow-text 10s linear infinite;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        @keyframes rainbow-text {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 400% 50%; }
+        }
+
+        /* --- ZONE D'AFFICHAGE DU TEXTE --- */
+        .display-container {
+            width: 100%;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .output-box {
+            width: 100%;
+            min-height: 60px;
+            max-height: 120px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            color: #fff;
+            word-break: break-all;
+            overflow-y: auto;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+            white-space: pre-wrap;
+        }
+        .display-controls {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .clear-btn {
+            background: transparent;
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: var(--font-family);
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .clear-btn:hover {
+            background: var(--neon-red);
+            color: #000;
+            box-shadow: 0 0 12px var(--neon-red);
+        }
+        .clear-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* --- CLAVIER --- */
+        .keyboard-wrapper {
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+        }
+        .key-row {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            gap: 4px;
+        }
+        .key {
+            background: var(--key-bg);
+            border: 1px solid #333;
+            border-bottom: 3px solid #000;
+            border-radius: 6px;
+            flex: 1;
+            height: clamp(40px, 6vw, 58px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.65rem, 1.8vw, 0.95rem);
+            color: #ccc;
+            position: relative;
+            user-select: none;
+            cursor: pointer;
+            transition: background 0.1s, transform 0.05s, box-shadow 0.1s;
+        }
+        .key.small { flex: 0.7; font-size: 0.7rem; }
+        .key.wide { flex: 1.5; }
+        .key.extra-wide { flex: 2; }
+        .key.space { flex: 6; }
+        
+        .key.key-active { 
+            background: var(--neon-pink) !important; 
+            color: white !important; 
+            transform: translateY(2px); 
+            border-bottom-width: 1px !important; 
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
+        
+        .key-top { 
+            font-size: clamp(0.5rem, 1.2vw, 0.7rem); 
+            position: absolute; 
+            top: 3px; 
+            left: 5px; 
+            opacity: 0.9; 
+            color: var(--neon-orange);
+        }
+        .key-gr { 
+            font-size: clamp(0.5rem, 1.2vw, 0.7rem); 
+            position: absolute; 
+            bottom: 3px; 
+            right: 5px; 
+            opacity: 0.9; 
+            color: var(--neon-green);
+        }
+        .key-main {
+            font-weight: bold;
+        }
+        .text-orange {
+            color: var(--neon-orange) !important;
+        }
+        .text-green {
+            color: var(--neon-green) !important;
+        }
+        .enter-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: -2px;
+            color: var(--neon-orange);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="starfield"></canvas>
+    <div class="container">
+        <header>
+            <h1>Clavier Interactif</h1>
+        </header>
+
+        <!-- Zone de texte tapé -->
+        <div class="display-container">
+            <div id="output" class="output-box"></div>
+            <div class="display-controls">
+                <button id="clear-btn" class="clear-btn">Effacer tout</button>
+            </div>
+        </div>
+
+        <div class="keyboard-wrapper" id="keyboard"></div>
+    </div>
+
+    <script>
+        const kbLayout = [
+            // Ligne 1 (Fonctions)
+            [
+                {id:'Escape', m:'Échap', w:'small'},
+                {id:'F1', m:'F1', w:'small'}, {id:'F2', m:'F2', w:'small'}, {id:'F3', m:'F3', w:'small'}, {id:'F4', m:'F4', w:'small'},
+                {id:'F5', m:'F5', w:'small'}, {id:'F6', m:'F6', w:'small'}, {id:'F7', m:'F7', w:'small'}, {id:'F8', m:'F8', w:'small'},
+                {id:'F9', m:'F9', w:'small'}, {id:'F10', m:'F10', w:'small'}, {id:'F11', m:'F11', w:'small'}, {id:'F12', m:'F12', w:'small'},
+                {id:'Delete', m:'Suppr', w:'small'}
+            ],
+            // Ligne 2 (Chiffres & Symboles)
+            [
+                {id:'Backquote', t:'²', m:'~', gr:'', w:'small', val:'²'},
+                {id:'Digit1', t:'1', m:'&', gr:'1', val:'&'},
+                {id:'Digit2', t:'2', m:'é', gr:'~', val:'é'},
+                {id:'Digit3', t:'3', m:'"', gr:'#', val:'"'},
+                {id:'Digit4', t:'4', m:"'", gr:'{', val:"'"},
+                {id:'Digit5', t:'5', m:'(', gr:'[', val:'('},
+                {id:'Digit6', t:'6', m:'-', gr:'|', val:'-'},
+                {id:'Digit7', t:'7', m:'è', gr:'`', val:'è'},
+                {id:'Digit8', t:'8', m:'_', gr:'\\', val:'_'},
+                {id:'Digit9', t:'9', m:'ç', gr:'^', val:'ç'},
+                {id:'Digit0', t:'0', m:'à', gr:'@', val:'à'},
+                {id:'Minus', t:'°', m:')', gr:']', val:')'},
+                {id:'Equal', t:'+', m:'=', gr:'}', val:'='},
+                {id:'Backspace', m:'← Effacer', w:'wide'}
+            ],
+            // Ligne 3 (AZERTY 1)
+            [
+                {id:'Tab', m:'↹ Tab', w:'wide', val:'\t'},
+                {id:'KeyQ', m:'A', val:'a'}, {id:'KeyW', m:'Z', val:'z'}, {id:'KeyE', m:'E', gr:'€', val:'e'}, {id:'KeyR', m:'R', val:'r'}, {id:'KeyT', m:'T', val:'t'},
+                {id:'KeyY', m:'Y', val:'y'}, {id:'KeyU', m:'U', val:'u'}, {id:'KeyI', m:'I', val:'i'}, {id:'KeyO', m:'O', val:'o'}, {id:'KeyP', m:'P', val:'p'},
+                {id:'BracketLeft', t:'¨', m:'^', val:'^'},
+                {id:'BracketRight', t:'£', m:'$', gr:'¤', val:'$'},
+                {id:'Enter', m:'<div class="enter-label">entrée</div>↵', w:'wide', val:'\n'}
+            ],
+            // Ligne 4 (AZERTY 2)
+            [
+                {id:'CapsLock', m:'⇪ Verr Maj', w:'wide', cls:'text-orange'},
+                {id:'KeyA', m:'Q', val:'q'}, {id:'KeyS', m:'S', val:'s'}, {id:'KeyD', m:'D', val:'d'}, {id:'KeyF', m:'F', val:'f'}, {id:'KeyG', m:'G', val:'g'},
+                {id:'KeyH', m:'H', val:'h'}, {id:'KeyJ', m:'J', val:'j'}, {id:'KeyK', m:'K', val:'k'}, {id:'KeyL', m:'L', val:'l'}, {id:'Semicolon', m:'M', val:'m'},
+                {id:'Quote', t:'%', m:'ù', val:'ù'},
+                {id:'Backslash', t:'µ', m:'*', val:'*'},
+                {id:'Insert', m:'Inser', w:'small'}
+            ],
+            // Ligne 5 (AZERTY 3)
+            [
+                {id:'ShiftLeft', m:'⇧ MAJ', w:'wide', cls:'text-orange'},
+                {id:'IntlBackslash', t:'>', m:'<', val:'<'},
+                {id:'KeyZ', m:'W', val:'w'}, {id:'KeyX', m:'X', val:'x'}, {id:'KeyC', m:'C', val:'c'}, {id:'KeyV', m:'V', val:'v'}, {id:'KeyB', m:'B', val:'b'},
+                {id:'KeyN', m:'N', val:'n'}, {id:'KeyM', t:'?', m:',', val:','},
+                {id:'Comma', t:'.', m:';', val:';'},
+                {id:'Period', t:'/', m:':', val:':'},
+                {id:'Slash', t:'§', m:'!', val:'!'},
+                {id:'ShiftRight', m:'⇧ MAJ', w:'wide', cls:'text-orange'}
+            ],
+            // Ligne 6 (Contrôles)
+            [
+                {id:'ControlLeft', m:'CTRL'},
+                {id:'Fn', m:'FN'},
+                {id:'MetaLeft', m:'WIN'},
+                {id:'AltLeft', m:'ALT'},
+                {id:'Space', m:'Espace', w:'space', val:' '},
+                {id:'AltRight', m:'ALT GR', cls:'text-green'},
+                {id:'MetaRight', m:'WIN'},
+                {id:'ContextMenu', m:'MENU'},
+                {id:'ControlRight', m:'CTRL'}
+            ]
+        ];
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let typedText = "";
+
+        function playSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.08);
+        }
+
+        function updateDisplay() {
+            const outputEl = document.getElementById('output');
+            outputEl.textContent = typedText;
+            outputEl.scrollTop = outputEl.scrollHeight;
+        }
+
+        function appendChar(char) {
+            if (char) {
+                typedText += char;
+                updateDisplay();
+            }
+        }
+
+        function deleteChar() {
+            typedText = typedText.slice(0, -1);
+            updateDisplay();
+        }
+
+        function renderKeyboard() {
+            const kb = document.getElementById('keyboard');
+            kb.innerHTML = '';
+            kbLayout.forEach(row => {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'key-row';
+                row.forEach(k => {
+                    const el = document.createElement('div');
+                    el.id = k.id; 
+                    el.className = `key ${k.w || ''}`;
+                    
+                    if(k.t) el.innerHTML += `<span class="key-top">${k.t}</span>`;
+                    if(k.gr) el.innerHTML += `<span class="key-gr">${k.gr}</span>`;
+                    el.innerHTML += `<span class="key-main ${k.cls || ''}">${k.m}</span>`;
+                    
+                    // Clic à la souris / écran tactile
+                    const handlePress = () => {
+                        el.classList.add('key-active');
+                        playSound();
+                        if (k.id === 'Backspace') {
+                            deleteChar();
+                        } else if (k.val) {
+                            appendChar(k.val);
+                        }
+                    };
+
+                    el.addEventListener('mousedown', handlePress);
+                    el.addEventListener('mouseup', () => el.classList.remove('key-active'));
+                    el.addEventListener('mouseleave', () => el.classList.remove('key-active'));
+                    
+                    el.addEventListener('touchstart', (e) => { 
+                        e.preventDefault(); 
+                        handlePress();
+                    });
+                    el.addEventListener('touchend', () => el.classList.remove('key-active'));
+                    
+                    rowEl.appendChild(el);
+                });
+                kb.appendChild(rowEl);
+            });
+        }
+
+        let isAltGrPressed = false;
+
+        // Gestion de la saisie au clavier physique
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+
+            // Filtre AltGr
+            if (e.code === 'AltRight' || e.key === 'AltGraph') {
+                isAltGrPressed = true;
+                const ctrlLeft = document.getElementById('ControlLeft');
+                if (ctrlLeft) ctrlLeft.classList.remove('key-active');
+
+                const altGr = document.getElementById('AltRight');
+                if (altGr) {
+                    altGr.classList.add('key-active');
+                    playSound();
+                }
+                return;
+            }
+
+            if (e.code === 'ControlLeft' && isAltGrPressed) return;
+
+            const el = document.getElementById(e.code);
+            if (el) {
+                el.classList.add('key-active');
+                playSound();
+            }
+
+            // Gestion de l'écriture
+            if (e.key === 'Backspace') {
+                deleteChar();
+            } else if (e.key === 'Enter') {
+                appendChar('\n');
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                appendChar('\t');
+            } else if (e.key.length === 1) {
+                appendChar(e.key);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'AltRight' || e.key === 'AltGraph') {
+                isAltGrPressed = false;
+                const altGr = document.getElementById('AltRight');
+                if (altGr) altGr.classList.remove('key-active');
+                return;
+            }
+
+            const el = document.getElementById(e.code);
+            if (el) {
+                el.classList.remove('key-active');
+            }
+        });
+
+        function initStarfield() {
+            const canvas = document.getElementById('starfield');
+            const ctx = canvas.getContext('2d');
+            let stars = [];
+            const numStars = 150;
+            
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+            
+            for(let i=0; i<numStars; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.2
+                });
+            }
+            
+            function animate() {
+                ctx.clearRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFF';
+                stars.forEach(s => {
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+                    ctx.fill();
+                    s.y += s.speed;
+                    if(s.y > canvas.height) {
+                        s.y = -5;
+                        s.x = Math.random() * canvas.width;
+                    }
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        window.onload = () => {
+            renderKeyboard();
+            initStarfield();
+
+            // Bouton "Effacer tout"
+            document.getElementById('clear-btn').onclick = () => {
+                typedText = "";
+                updateDisplay();
+            };
+        };
+    </script>
+</body>
+</html>
